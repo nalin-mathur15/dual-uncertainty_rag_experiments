@@ -1,0 +1,89 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*_venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Large Raw Datasets (Do NOT commit multi-GB arrays to Git)
+data/
+data/processed/
+data/raw/
+*.npy
+*.npz
+*.parquet
+*.h5
+*.arrow
+
+# Model Checkpoint Weights (Exceeds GitHub 100MB limit)
+outputs/checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+
+# Tracking Results & Figures: Allow outputs/results/ and outputs/figures/
+!outputs/results/
+!outputs/results/*
+!outputs/figures/
+!outputs/figures/*
+
+# SLURM logs & cluster outputs
+outputs/*.log
+outputs/*.out
+outputs/*.err
+
+# IDE & OS Specific
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# LaTeX Auxiliary Build Files
+report/*.aux
+report/*.bbl
+report/*.bcf
+report/*.blg
+report/*.fdb_latexmk
+report/*.fls
+report/*.lof
+report/*.log
+report/*.lot
+report/*.out
+report/*.run.xml
+report/*.synctex.gz
+report/*.toc
+report/*.pdfsync

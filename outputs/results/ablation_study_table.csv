@@ -1,0 +1,8 @@
+Ablation,ID_Regret,Adv_Regret,ID_Top1_Q,ID_Distractor_Rate,ID_Distractor_on_Ask,ID_Avg_Questions,Adv_Unsupported_Rate,ID_ECE,ID_AURC
+Full_Model_F,0.1,0.1123,0.337,0.0,0.0,0.25,0.0,0.0,0.0605
+1_No_Attention (Pooled_MLP),0.1475,0.1399,0.171,0.0,0.0,0.36,0.0,0.0,0.0946
+2_No_Uncertainty (Direct_SetTrans),0.1,0.1123,0.279,0.0,0.0,0.25,0.0,0.0,0.0613
+3_No_VOI (Information_Gain),0.1,0.1123,0.306,0.0,0.0,0.25,0.0,0.0,0.0599
+4_No_Question_Cost (Lambda=0),0.1,0.1123,0.337,0.0,0.0,0.25,0.0,0.0,0.0605
+5_No_Evidence_Separation,0.1,0.1123,0.307,0.0,0.0,0.25,0.0,0.0,0.0602
+6_No_Calibration (Raw_Confidence),0.1,0.1123,0.337,0.0,0.0,0.25,0.0,0.0001,0.0605

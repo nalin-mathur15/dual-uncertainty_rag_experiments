@@ -1,0 +1,38 @@
+\section{Results and Discussion}
+\label{sec:results}
+
+\begin{table*}[t]
+\centering
+\small
+\caption{Main experimental results across In-Distribution, Domain Shift (SciFact), and Adversarial Evidence test splits. Models D--F achieve $57.3\%$ lower decision regret, zero unsupported answers ($0.0\%$), and $97.3\%$ top-1 clarification question accuracy on ambiguous turns.}
+\label{tab:main_results}
+\begin{tabular}{llcccccccc}
+\toprule
+\textbf{Split} & \textbf{Model} & \textbf{Regret} $\downarrow$ & \textbf{Quad Acc} $\uparrow$ & \textbf{Top-1 Q (on ASK)} $\uparrow$ & \textbf{Distractor} $\downarrow$ & \textbf{Unsupp.} $\downarrow$ & \textbf{ECE} $\downarrow$ & \textbf{AURC} $\downarrow$ \\
+\midrule
+\multirow{6}{*}{\textbf{In-Distribution}} 
+& Model A (Heuristic) & 0.2927 & 48.7\% & 32.2\% & 0.0\% & 23.0\% & 0.3771 & 0.1760 \\
+& Model B (Prompted LLM) & 0.2343 & 77.7\% & 31.6\% & 0.0\% & 18.4\% & 0.5386 & 0.1110 \\
+& Model C (Pooled MLP) & 0.1475 & 100.0\% & 34.1\% & 0.0\% & \textbf{0.0\%} & \textbf{0.0000} & 0.0946 \\
+& Model D (Set Transformer) & 0.1000 & 100.0\% & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & 0.0001 & \textbf{0.0587} \\
+& Model E (Bayesian VOI) & 0.1000 & 100.0\% & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0677 \\
+& Model F (Dual-Unc VOI) & \textbf{0.1000} & \textbf{100.0\%} & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0605 \\
+\midrule
+\multirow{3}{*}{\textbf{SciFact OOD}} 
+& Model B (Prompted LLM) & 0.2645 & 77.4\% & 10.6\% & 0.0\% & 18.7\% & 0.5404 & 0.1354 \\
+& Model C (Pooled MLP) & 0.1648 & 100.0\% & 17.9\% & 0.0\% & \textbf{0.0\%} & \textbf{0.0000} & 0.1038 \\
+& Model F (Dual-Unc VOI) & \textbf{0.1108} & \textbf{100.0\%} & \textbf{80.8\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0004} & \textbf{0.0703} \\
+\midrule
+\multirow{3}{*}{\textbf{Adversarial}} 
+& Model B (Prompted LLM) & 0.2376 & 74.9\% & 30.6\% & 0.0\% & 20.9\% & 0.6049 & 0.1203 \\
+& Model C (Pooled MLP) & 0.1399 & 100.0\% & 33.5\% & 0.0\% & \textbf{0.0\%} & \textbf{0.0000} & 0.1043 \\
+& Model F (Dual-Unc VOI) & \textbf{0.1123} & \textbf{100.0\%} & \textbf{97.0\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & \textbf{0.0736} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Decision Regret and Hallucination Elimination}
+As demonstrated in Table~\ref{tab:main_results}, the proposed Dual-Uncertainty Set Transformer (Model F) achieves a minimum net decision regret of $0.1000$ on the in-distribution test split, outperforming Prompted LLMs ($0.2343$) by $57.3\%$. Critically, while the LLM generates unsupported, hallucinated answers $18.4\%$ of the time in-distribution and $20.9\%$ under adversarial perturbations, Model F drives the unsupported answer rate to strictly $0.0\%$.
+
+\subsection{Clarification Discrimination and Surface Distractor Suppression}
+On genuine clarification states (Quadrant 1), Models D--F achieve $97.3\%$ Top-1 Question Accuracy, more than triple that of Prompted LLMs ($31.6\%$). The distractor rate on active clarification turns is $0.0\%$, verifying that the model selects targeted disambiguating inquiries rather than surface distractors.

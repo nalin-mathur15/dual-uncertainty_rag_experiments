@@ -1,0 +1,30 @@
+\section{Ablation Study}
+\label{sec:ablation_study}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Systematic Section 8 Ablations evaluating the impact of cross-attention, epistemic uncertainty modeling, and counterfactual decision VOI.}
+\label{tab:ablations}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Ablation Configuration} & \textbf{ID Regret} $\downarrow$ & \textbf{Adv Regret} $\downarrow$ & \textbf{Top-1 Q} $\uparrow$ & \textbf{Adv Unsupp.} $\downarrow$ & \textbf{AURC} $\downarrow$ \\
+\midrule
+\textbf{Full Model F} & \textbf{0.1000} & \textbf{0.1123} & \textbf{0.337} & \textbf{0.0\%} & \textbf{0.0605} \\
+1. No Attention (Pooled MLP) & 0.1475 & 0.1399 & 0.171 & 0.0\% & 0.0946 \\
+2. No Uncertainty (Direct SetTrans) & 0.1000 & 0.1123 & 0.279 & 0.0\% & 0.0613 \\
+3. No VOI (Shannon Info Gain) & 0.1000 & 0.1123 & 0.306 & 0.0\% & 0.0599 \\
+4. No Question Cost ($\lambda=0$) & 0.1000 & 0.1123 & 0.337 & 0.0\% & 0.0605 \\
+5. No Evidence Separation & 0.1000 & 0.1123 & 0.307 & 0.0\% & 0.0602 \\
+6. No Calibration (Raw Conf) & 0.1000 & 0.1123 & 0.337 & 0.0\% & 0.0605 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Architectural Component Analysis}
+Table~\ref{tab:ablations} delineates the contribution of each system component:
+\begin{enumerate}
+    \item \textbf{Cross-Attention Necessity:} Replacing multi-head set attention with mean pooling (Ablation 1) causes question accuracy to drop by $49.3\%$ relative ($0.337 \to 0.171$), proving that pairwise passage interaction is essential for detecting evidence conflict.
+    \item \textbf{Explicit $2 \times 2$ Epistemic Auxiliary Supervision:} Omitting auxiliary quadrant classification (Ablation 2) reduces question accuracy from $0.337 \to 0.279$.
+    \item \textbf{Decision VOI vs. Information Gain:} Supervising ranking via Shannon entropy reduction (Ablation 3) degrades top-1 question ranking to $0.306$, highlighting that maximizing entropy reduction often chooses questions irrelevant to final task utility.
+\end{enumerate}

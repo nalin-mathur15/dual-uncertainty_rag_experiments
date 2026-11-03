@@ -1,0 +1,28 @@
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{The $2 \times 2$ Epistemic Uncertainty Formulation}
+We formalize a RAG state as a tuple $s = (x, \mathcal{D}, \mathcal{Q}, \mathcal{R})$, where $x$ is the initial query, $\mathcal{D} = \{d_1, \dots, d_M\}$ is the set of retrieved passages, $\mathcal{Q} = \{q_1, \dots, q_K\}$ is a candidate pool of clarification questions, and $\mathcal{R} = \{r_1, \dots, r_L\}$ is a pool of search reformulations.
+
+The state is governed by two latent binary variables:
+\begin{align}
+    P &\in \{0, 1\} \quad \text{(Prompt Certainty)} \\
+    E &\in \{0, 1\} \quad \text{(Evidence Sufficiency)}
+\end{align}
+yielding four distinct epistemic quadrants:
+\begin{itemize}
+    \item \textbf{Quadrant 0 ($P=1, E=1 \to \texttt{ANSWER}$):} Unambiguous prompt, sufficient corpus evidence. Safe to generate terminal response immediately.
+    \item \textbf{Quadrant 1 ($P=0, E=1 \to \texttt{ASK}$):} Ambiguous prompt, sufficient corpus evidence. System must ask a clarification question $q^* \in \mathcal{Q}$ to identify true user intent.
+    \item \textbf{Quadrant 2 ($P=1, E=0 \to \texttt{SEARCH}$):} Unambiguous prompt, insufficient/conflicting evidence. Asking the user is futile; system must reformulate search query $r^* \in \mathcal{R}$.
+    \item \textbf{Quadrant 3 ($P=0, E=0 \to \texttt{ABSTAIN}$):} Ambiguous prompt, unresolvable corpus gap. System abstains to avoid dual failure.
+\end{itemize}
+
+\subsection{Counterfactual Value of Information (VOI)}
+For a candidate question $q$, let $\Delta R(q) = R(a_0) - \mathbb{E}[R(a_q)]$ denote the expected regret reduction. The net Value of Information is:
+\begin{equation}
+    \operatorname{VOI}(q) = \Delta R(q) - \lambda \cdot \operatorname{Cost}(q)
+\end{equation}
+where $\lambda$ represents the user inconvenience penalty. Similarly, search rewrite VOI is given by $\operatorname{VOI}(r) = \Delta R(r) - \gamma \cdot \operatorname{Cost}(r)$, where $\gamma$ is the computational retrieval cost.
+
+\subsection{Set Transformer Architecture with Latent Intent Modeling}
+We employ a permutation-invariant Set Transformer \cite{lee2019set} to model multi-passage cross-attention, coupled with a variational Gaussian posterior over latent user intent $\theta \sim \mathcal{N}(\mu(s), \sigma^2(s))$ and temperature-scaled selective readiness calibration.

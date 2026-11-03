@@ -1,0 +1,16 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Retrieval-Augmented Generation (RAG) has emerged as the standard paradigm for grounding Large Language Models (LLMs) in external, verifiable knowledge corpora \cite{lewis2020retrieval}. Despite widespread adoption, contemporary RAG systems suffer from two chronic, interconnected failure modes:
+\begin{enumerate}
+    \item \textbf{Premature Answering and Hallucination:} When retrieved passages fail to answer the query or present conflicting evidence, LLMs tend to generate fluent but factually unsubstantiated answers.
+    \item \textbf{User Annoyance via Misdirected Clarification:} When an answer cannot be generated, existing interactive assistants frequently prompt the user for clarification, even when the user's query is unambiguous and the failure stems entirely from missing corpus documents.
+\end{enumerate}
+
+These pathologies arise because standard systems treat epistemic uncertainty as a single scalar confidence score. In reality, conversational information seeking exhibits two orthogonal dimensions of epistemic uncertainty:
+\begin{itemize}
+    \item \textbf{Prompt Ambiguity ($U_{\text{prompt}}$):} Does the user's initial natural language prompt under-specify their genuine information need?
+    \item \textbf{Evidence Insufficiency ($U_{\text{evid}}$):} Does the underlying retrieval database contain sufficient, uncontradicted evidence to support a factual answer?
+\end{itemize}
+
+By decoupling these two uncertainty axes into a $2 \times 2$ Epistemic Matrix, we establish a principled mapping to optimal macro actions: \texttt{ANSWER}, \texttt{ASK}, \texttt{SEARCH}, and \texttt{ABSTAIN}.
