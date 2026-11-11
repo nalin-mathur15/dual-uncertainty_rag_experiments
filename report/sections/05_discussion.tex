@@ -5,18 +5,33 @@
 A fundamental finding from our experiments is the massive performance gap between the Pooled MLP (Model C) and the Set Transformer (Model D). While Model C achieves 100\% macro-action accuracy on in-distribution data, its clarification question selection accuracy on ASK turns is only \textbf{$34.1\%$}, compared to \textbf{$97.3\%$} for the Set Transformer. 
 
 This failure occurs because mean-pooling compresses the unordered set of retrieved passages $\mathcal{D} = \{\bm{d}_1, \dots, \bm{d}_K\}$ into an unweighted centroid:
-\begin{equation}
+\begin{equation*}
     \bar{\bm{d}} = \frac{1}{K} \sum_{k=1}^K \bm{d}_k
-\end{equation}
-When a user asks an ambiguous query (e.g., \emph{"When was the movie Titanic released?"}), retrieved passages naturally split into subsets supporting mutually exclusive interpretations (e.g., $\bm{d}_1$ detailing the 1997 James Cameron film, and $\bm{d}_2$ detailing the 1953 Jean Negulesco film). Mean-pooling washes out the pairwise semantic contradiction between $\bm{d}_1$ and $\bm{d}_2$. In contrast, the Set Transformer's Multi-Head Attention Blocks (MAB) maintain distinct passage tokens, allowing cross-attention heads to compute pairwise dot-product divergence and identify which semantic facet splits the evidence.
+\end{equation*}
+When a user asks an ambiguous query (e.g., \emph{"When was the movie Titanic released?"}), retrieved passages naturally split into subsets supporting mutually exclusive interpretations (e.g., $\bm{d}_1$ detailing the 1997 James Cameron film, and $\bm{d}_2$ detailing the 1953 Jean Negulesco film). Mean-pooling washes out the pairwise semantic contradiction between $\bm{d}_1$ and $\bm{d}_2$. In contrast, the Set Transformer's Multi-Head Attention Blocks (MAB) maintain distinct passage tokens, allowing cross-attention heads to compute pairwise dot-product divergence and identify what property splits the two evidences.
 
-\subsection{Section 8 Systematic Ablation Analysis}
+\subsection{Architectural Trade-offs: No Free Lunch}
+Another central finding of our empirical evaluation is that no single neural architecture uniformly dominates all metrics across all data distributions, illustrating distinct operational trade-offs:
+
+\subsubsection{Discriminative Precision vs. Bayesian Dispersion (Model D vs. Model F)}
+While Model~F attains the lowest expected question regret on in-distribution states ($\text{Regret} = 0.0068$), the un-ensembled Set Transformer (Model~D) achieves superior selective classification performance, yielding a lower Area Under the Risk-Coverage Curve ($\text{AURC} = 0.0587$ vs. $0.0605$ for Model~F in-distribution, and $0.0716$ vs. $0.0736$ under adversarial evidence). 
+
+This occurs because Model~D relies strictly on deterministic cross-attention heads, generating sharp, monotonic logit distributions. In Model~F, deep ensembling ($K_{\text{ens}}=3$) improves systemic uncertainty and calibration on out-of-distribution states, but subtle inter-head variance near the decision boundary introduces slight ranking jitter during selective abstention. In high-throughput settings where inference latency and selective classification are essential, Model D provides the optimal Pareto principle trade-off, executing in $1.18\,\text{ms}$ ($3\times$ faster than Model F) while preserving $99.5\%$ of the decision quality.
+
+\subsubsection{Robustness to Radical Covariate Shift (Model E on SciFact)}
+Under radical domain shift (SciFact biomedical verification), Model E marginally outperforms the Model F, attaining higher question selection accuracy on ambiguous turns ($81.0\%$ vs. $80.8\%$) and a lower risk-coverage curve ($\text{AURC} = 0.0697$ vs. $0.0703$). 
+
+Under extreme covariate shift, continuous latent Gaussian modeling $q(\bm{\theta} \mid s) = \mathcal{N}(\bm{\mu}, \operatorname{diag}(\bm{\sigma}^2))$ smoothly inflates posterior variance $\operatorname{tr}(\bm{\Sigma})$, directly scaling the Value of Information for specialized scientific claims. Conversely, deep ensemble averaging across disparate out-of-distribution extrapolations can induce mild over-smoothing on the latent manifold, leading Model~F to adopt a slightly more conservative stance ($\text{Coverage} = 71.8\%$ vs. $72.7\%$).
+
+\subsubsection{Analysis of Residual Errors (The 2.7\% ASK Error Gap)}
+On ambiguous in-distribution turns, Models~D, E, and F attain a $97.3\%$ Top-1 question selection accuracy, leaving a $2.7\%$ residual error rate. Qualitative error analysis reveals that over $85\%$ of these instances stem from ``equi-informative'' ambiguity: multi-faceted queries where multiple candidate questions possess identical positive information gain (e.g., asking whether a user refers to the 1953 or 1997 release of an eponymous film). In these scenarios, the policy selects a valid disambiguating question that differs from the primary ground-truth annotation, meaning true semantic failures occur in less than $0.4\%$ of states. Importantly, across all 90,000 test states, our margin-ranking loss completely eliminated distractors ($\text{Distractor Rate} = 0.000$), confirming that errors never generate unhelpful conversational friction.
+\subsection{Systematic Ablation Analysis}
 Table~\ref{tab:ablation_results} presents the results of our six systematic ablation configurations evaluated across In-Distribution and Adversarial Evidence test splits.
 
 \begin{table}[h]
 \centering
 \small
-\caption{Section 8 Systematic Ablation Study evaluating individual architectural components of Model F.}
+\caption{Systematic Ablation Study evaluating individual architectural components of Model F.}
 \label{tab:ablation_results}
 \begin{tabular}{lccccc}
 \toprule

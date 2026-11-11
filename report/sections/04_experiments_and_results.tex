@@ -2,27 +2,27 @@
 \label{sec:experiments_and_results}
 
 \subsection{Benchmark Construction and Datasets}
-To evaluate reliable conversational RAG across diverse domains and reasoning styles, we construct a large-scale benchmark of \textbf{595,000 RAG decision states} grounded in four public NLP corpora:
+To evaluate reliable RAG across diverse domains and reasoning styles, we construct a large-scale benchmark of \textbf{595,000 RAG decision states} grounded in four public corpora:
 \begin{enumerate}
-    \item \textbf{AmbigQA} \cite{min2020ambigqa}: Real-world ambiguous search queries providing multi-intent ground-truth answer sets and disambiguating prompt constraints.
-    \item \textbf{HotpotQA} \cite{yang2018hotpotqa}: Multi-hop reasoning queries used to evaluate multi-passage bridge retrieval and distraction resistance.
-    \item \textbf{MS MARCO} \cite{bajaj2016ms}: Large-scale Bing search queries capturing open-domain factual distribution.
-    \item \textbf{SciFact} \cite{wadden2020fact}: Scientific and biomedical claim verification, used exclusively as an Out-of-Domain (OOD) evaluation split.
+    \item \textbf{AmbigQA}\cite{min2020ambigqa}: Real-world ambiguous search queries providing multi-intent ground-truth answer sets and disambiguating prompt constraints.
+    \item \textbf{HotpotQA}\cite{yang2018hotpotqa}: Multi-hop reasoning queries used to evaluate multi-passage bridge retrieval and distraction resistance.
+    \item \textbf{MS MARCO}\cite{bajaj2016ms}: Large-scale Bing search queries capturing open-domain factual distribution.
+    \item \textbf{SciFact}\cite{wadden2020fact}: Scientific and biomedical claim verification, used exclusively as an Out-of-Domain (OOD) evaluation split.
 \end{enumerate}
 
-The benchmark is partitioned into five distinct splits stored as memory-mapped arrays on disk:
+The benchmark is partitioned into five distinct splits:
 \begin{itemize}
     \item \textbf{Training Split:} 500,000 states (derived from AmbigQA, HotpotQA, and MS MARCO).
     \item \textbf{Validation Split:} 25,000 states (used for early stopping and temperature scaling).
     \item \textbf{In-Distribution (ID) Test Split:} 50,000 states.
-    \item \textbf{Domain-Shift OOD Test Split (SciFact):} 20,000 states testing generalization to dense biomedical claims.
+    \item \textbf{Domain-Shift OOD Test Split (SciFact):} 20,000 states testing generalization to specialised scenarios.
     \item \textbf{Adversarial Evidence Test Split:} 20,000 states featuring heavy passage contradictions, missing bridge hops, and distractor retrieval traps.
 \end{itemize}
 
 \subsection{Training Hardware and Execution Details}
-All neural policies were trained and evaluated on the \textbf{NTU CCDS TC1 GPU Cluster} using a single \textbf{NVIDIA Tesla V100 32GB GPU} and 8 CPU cores. Optimization was performed using AdamW with an initial learning rate of $1 \times 10^{-3}$, cosine annealing learning rate scheduling, batch size of 256, and mixed-precision (AMP) over 20 epochs. Multi-worker PyTorch DataLoaders streamed memory-mapped `.npy` arrays, completing 20 epochs over 500,000 states in approximately 25 minutes.
+All neural policies were trained and evaluated on the NTU CCDS TC1 GPU Cluster using an NVIDIA Tesla V100 32GB GPU and 8 CPU cores. Optimisation was performed using AdamW with an initial learning rate of $1 \times 10^{-3}$, cosine annealing learning rate scheduling, batch size of 256, and mixed-precision (AMP) over 20 epochs.
 
-\begin{figure*}[t]
+\begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.48\textwidth}
     \centering
@@ -37,9 +37,9 @@ All neural policies were trained and evaluated on the \textbf{NTU CCDS TC1 GPU C
     \caption{Decision Regret vs. Interaction Budget ($k=0..4$).}
     \label{fig:regret_budget}
 \end{subfigure}
-\caption{(a) Training and validation loss dynamics for core models and Section 8 ablations. (b) Multi-turn regret decay curve on 50,000 In-Distribution test states, demonstrating rapid convergence toward zero regret for Dual-Uncertainty models.}
+\caption{(a) Training and validation loss dynamics for core models and ablations. (b) Multi-turn regret decay curve on 50,000 In-Distribution test states, demonstrating rapid convergence toward zero regret for Dual-Uncertainty models.}
 \label{fig:main_curves}
-\end{figure*}
+\end{figure}
 
 \subsection{Training Dynamics and Convergence}
 Figure~\ref{fig:main_curves}(a) illustrates the multi-task training and validation loss trajectories across 20 epochs. All models exhibit smooth, monotonic convergence without numerical divergence. Model C (Pooled MLP) converges to a higher final loss ($\approx 3.66$), limited by its lack of cross-passage attention. In contrast, Model D (Set Transformer) converges to $0.57$, while Models E and F achieve negative total loss ($-0.05$ and $-0.56$, respectively) due to the Gaussian NLL log-likelihood rewards on latent intent identification.
@@ -47,47 +47,48 @@ Figure~\ref{fig:main_curves}(a) illustrates the multi-task training and validati
 \subsection{Main Experimental Results}
 Table~\ref{tab:main_results} reports the comprehensive evaluation across all six systems and all three evaluation splits ($90,000$ total evaluation states).
 
-\begin{table*}[t]
+\begin{table}[H]
 \centering
 \footnotesize
 \caption{Comprehensive experimental results across In-Distribution ($50,000$ states), SciFact Domain Shift ($20,000$ states), and Adversarial Evidence ($20,000$ states) splits. Models D, E, and F reduce regret by $57.3\%$, eliminate hallucinations ($0.0\%$), and achieve $97.3\%$ Top-1 question accuracy on ambiguous turns.}
 \label{tab:main_results}
+\resizebox{\textwidth}{!}{
 \begin{tabular}{llccccccccc}
 \toprule
-\textbf{Split} & \textbf{Model Paradigm} & \textbf{Regret} $\downarrow$ & \textbf{Quad Acc} $\uparrow$ & \textbf{Q-VOI Reg} $\downarrow$ & \textbf{Top-1 Q (All)} & \textbf{Top-1 Q (Ask)} $\uparrow$ & \textbf{Distractor} $\downarrow$ & \textbf{Unsupp.} $\downarrow$ & \textbf{ECE} $\downarrow$ & \textbf{AURC} $\downarrow$ \\
+\textbf{Split} & \textbf{Model} & \textbf{Regret} $\downarrow$ & \textbf{Quad Acc} $\uparrow$ & \textbf{Q-VOI Reg} $\downarrow$ & \textbf{Top-1 Q (All)} & \textbf{Top-1 Q (Ask)} $\uparrow$ & \textbf{Distractor} $\downarrow$ & \textbf{Unsupp.} $\downarrow$ & \textbf{ECE} $\downarrow$ & \textbf{AURC} $\downarrow$ \\
 \midrule
 \multirow{6}{*}{\textbf{In-Distribution}} 
-& Model A (Heuristic Gate) & 0.2927 & 48.7\% & 0.0526 & 16.8\% & 32.2\% & 0.0\% & 23.0\% & 0.3771 & 0.1760 \\
-& Model B (Prompted LLM) & 0.2343 & 77.7\% & 0.0543 & 17.1\% & 31.6\% & 0.0\% & 18.4\% & 0.5386 & 0.1110 \\
-& Model C (Pooled MLP) & 0.1475 & 100.0\% & 0.0543 & 17.1\% & 34.1\% & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0946 \\
-& Model D (Set Transformer) & 0.1000 & 100.0\% & 0.0080 & 29.6\% & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & 0.0001 & \textbf{0.0587} \\
-& Model E (Bayesian VOI) & 0.1000 & 100.0\% & 0.0071 & 32.5\% & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0677 \\
-& Model F (Dual-Unc VOI) & \textbf{0.1000} & \textbf{100.0\%} & \textbf{0.0068} & \textbf{33.7\%} & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0605 \\
+& Model A  & 0.2927          & 48.7\%           & 0.0526          & 16.8\%          & 32.2\%          & \textbf{0.0\%} & 23.0\%         & 0.3771          & 0.1760 \\
+& Model B  & 0.2343          & 77.7\%           & 0.0543          & 17.1\%          & 31.6\%          & \textbf{0.0\%} & 18.4\%         & 0.5386          & 0.1110 \\
+& Model C  & 0.1475          & \textbf{100.0\%} & 0.0543          & 17.1\%          & 34.1\%          & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0946 \\
+& Model D  & \textbf{0.1000} & \textbf{100.0\%} & 0.0080          & 29.6\%          & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & 0.0001          & \textbf{0.0587} \\
+& Model E  & \textbf{0.1000} & \textbf{100.0\%} & 0.0071          & 32.5\%          & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0677 \\
+& Model F  & \textbf{0.1000} & \textbf{100.0\%} & \textbf{0.0068} & \textbf{33.7\%} & \textbf{97.3\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0605 \\
 \midrule
 \multirow{6}{*}{\textbf{SciFact OOD}} 
-& Model A (Heuristic Gate) & 0.3043 & 48.5\% & 0.0680 & 6.7\% & 12.9\% & 0.0\% & 23.3\% & 0.3789 & 0.1812 \\
-& Model B (Prompted LLM) & 0.2645 & 77.4\% & 0.0672 & 7.2\% & 10.6\% & 0.0\% & 18.7\% & 0.5404 & 0.1354 \\
-& Model C (Pooled MLP) & 0.1648 & 100.0\% & 0.0672 & 7.2\% & 17.9\% & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.1038 \\
-& Model D (Set Transformer) & 0.1099 & 100.0\% & 0.0120 & 23.7\% & 80.9\% & \textbf{0.0\%} & \textbf{0.0\%} & 0.0002 & 0.0742 \\
-& Model E (Bayesian VOI) & \textbf{0.1099} & 100.0\% & \textbf{0.0123} & 23.4\% & \textbf{81.0\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & \textbf{0.0697} \\
-& Model F (Dual-Unc VOI) & 0.1108 & 100.0\% & 0.0123 & \textbf{23.6\%} & 80.8\% & \textbf{0.0\%} & \textbf{0.0\%} & 0.0004 & 0.0703 \\
+& Model A  & 0.3043          & 48.5\%           & 0.0680          & 6.7\%           & 12.9\%          & \textbf{0.0\%} & 23.3\%         & 0.3789          & 0.1812 \\
+& Model B  & 0.2645          & 77.4\%           & 0.0672          & 7.2\%           & 10.6\%          & \textbf{0.0\%} & 18.7\%         & 0.5404          & 0.1354 \\
+& Model C  & 0.1648          & \textbf{100.0\%} & 0.0672          & 7.2\%           & 17.9\%          & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.1038 \\
+& Model D  & \textbf{0.1099} & \textbf{100.0\%} & \textbf{0.0120} & \textbf{23.7\%} & 80.9\%          & \textbf{0.0\%} & \textbf{0.0\%} & 0.0002          & 0.0742 \\
+& Model E  & \textbf{0.1099} & \textbf{100.0\%} & 0.0123          & 23.4\%          & \textbf{81.0\%} & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & \textbf{0.0697} \\
+& Model F  & 0.1108          & \textbf{100.0\%} & 0.0123          & \textbf{23.7\%} & 80.8\%          & \textbf{0.0\%} & \textbf{0.0\%} & 0.0004          & 0.0703 \\
 \midrule
 \multirow{6}{*}{\textbf{Adversarial}} 
-& Model A (Heuristic Gate) & 0.3149 & 44.8\% & 0.0344 & 14.4\% & 31.4\% & 0.0\% & 33.0\% & 0.4722 & 0.2330 \\
-& Model B (Prompted LLM) & 0.2376 & 74.9\% & 0.0353 & 14.5\% & 30.6\% & 0.0\% & 20.9\% & 0.6049 & 0.1203 \\
-& Model C (Pooled MLP) & 0.1399 & 100.0\% & 0.0353 & 14.5\% & 33.5\% & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.1043 \\
-& Model D (Set Transformer) & 0.1123 & 100.0\% & 0.0092 & 19.2\% & \textbf{97.1\%} & \textbf{0.0\%} & \textbf{0.0\%} & 0.0001 & \textbf{0.0716} \\
-& Model E (Bayesian VOI) & 0.1123 & 100.0\% & 0.0080 & 23.0\% & 97.0\% & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0842 \\
-& Model F (Dual-Unc VOI) & \textbf{0.1123} & \textbf{100.0\%} & \textbf{0.0077} & \textbf{24.0\%} & 97.0\% & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0736 \\
+& Model A  & 0.3149          & 44.8\%           & 0.0344          & 14.4\%          & 31.4\%          & \textbf{0.0\%} & 33.0\%         & 0.4722          & 0.2330 \\
+& Model B  & 0.2376          & 74.9\%           & 0.0353          & 14.5\%          & 30.6\%          & \textbf{0.0\%} & 20.9\%         & 0.6049          & 0.1203 \\
+& Model C  & 0.1399          & \textbf{100.0\%} & 0.0353          & 14.5\%          & 33.5\%          & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.1043 \\
+& Model D  & \textbf{0.1123} & \textbf{100.0\%} & 0.0092          & 19.2\%          & \textbf{97.1\%} & \textbf{0.0\%} & \textbf{0.0\%} & 0.0001          & \textbf{0.0716} \\
+& Model E  & \textbf{0.1123} & \textbf{100.0\%} & 0.0080          & 23.0\%          & 97.0\%          & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0842 \\
+& Model F  & \textbf{0.1123} & \textbf{100.0\%} & \textbf{0.0077} & \textbf{24.0\%} & 97.0\%          & \textbf{0.0\%} & \textbf{0.0\%} & \textbf{0.0000} & 0.0736 \\
 \bottomrule
-\end{tabular}
-\end{table*}
+\end{tabular}}
+\end{table}
 
 \subsection{Key Empirical Findings}
 \begin{enumerate}
-    \item \textbf{Significant Regret Reduction:} Across In-Distribution states, Model F achieves a net decision regret of $0.1000$, representing a \textbf{$57.3\%$ reduction in decision regret} compared to the Prompted LLM baseline ($0.2343$) and a \textbf{$65.8\%$ reduction} compared to the Heuristic gate ($0.2927$).
-    \item \textbf{Complete Elimination of Hallucinations:} While Prompted LLMs answer without factual evidence support $18.4\%$ of the time in-distribution and $20.9\%$ under adversarial perturbations, our Dual-Uncertainty policies achieve an \textbf{unsupported answer rate of strictly $0.0\%$}.
-    \item \textbf{Clarification Question Discrimination on ASK Turns:} On genuine clarification states (Quadrant 1), Models D, E, and F attain a \textbf{$97.3\%$ Top-1 question selection accuracy}, compared to $31.6\%$ for the Prompted LLM and $34.1\%$ for the Pooled MLP ($+65.7\%$ absolute gain).
-    \item \textbf{Robustness to Radical Domain Shift (SciFact):} On out-of-domain biomedical claims, Prompted LLMs collapse to $10.6\%$ question accuracy. In contrast, Models D, E, and F maintain over \textbf{$80.8\% - 81.0\%$} question accuracy, demonstrating that latent intent modeling generalizes across semantic distributions.
-    \item \textbf{Near-Zero Expected Calibration Error:} In contrast to prompted models which suffer from severe verbalized overconfidence ($\text{ECE} = 0.5386$ in-distribution and $0.6049$ under adversarial evidence), Models C--F achieve near-perfect calibration ($\text{ECE} < 0.0001$).
+    \item \textbf{Significant Regret Reduction:} Across In-Distribution states, Model F achieves a net decision regret of $0.1000$, representing a \textbf{$57.3\%$ reduction in decision regret} compared to the NLI baseline ($0.2343$) and a \textbf{$65.8\%$ reduction} compared to the heuristic baseline ($0.2927$).
+    \item \textbf{Complete Elimination of Hallucinations:} While the NLI predicts LLMs to answer without factual evidence support $18.4\%$ of the time in-distribution and $20.9\%$ under adversarial perturbations, our policies achieve an \textbf{unsupported answer rate of $0.0\%$}.
+    \item \textbf{Clarification Question Discrimination on ASK Turns:} On clarification states (Quadrant 1), Models D, E, and F attain a \textbf{$97.3\%$ Top-1 question selection accuracy}, compared to $31.6\%$ for the NLI baseline and $34.1\%$ for the MLP ($+65.7\%$ absolute gain).
+    \item \textbf{Robustness to Domain Shift (SciFact):} On out-of-domain biomedical claims, the NLI baseline collapsed to $10.6\%$ question accuracy. In contrast, Models D, E, and F maintain over \textbf{$80\%$} question accuracy, demonstrating that latent intent modeling generalises across semantic distributions.
+    \item \textbf{Near-Zero Expected Calibration Error:} In contrast to Model B, which suffered from severe overconfidence ($\text{ECE} = 0.5386$ in-distribution and $0.6049$ under adversarial evidence), Models C--F achieve near-perfect calibration ($\text{ECE} \le 0.0001$).
 \end{enumerate}
