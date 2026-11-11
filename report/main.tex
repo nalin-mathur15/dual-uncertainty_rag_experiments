@@ -1,18 +1,29 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[10pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
-\usepackage[margin=1in]{geometry}
+\usepackage[a4paper, margin=1.0in]{geometry}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% --- Math, Symbols, and Algorithms ---
 \usepackage{amsmath,amssymb,amsfonts,amsthm}
-\usepackage{booktabs}
-\usepackage{multirow}
-\usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{xcolor}
-\usepackage{cite}
-\usepackage{microtype}
+\usepackage{bm}
 \usepackage{algorithm}
 \usepackage{algorithmic}
 
+% --- Tables, Graphics, and Formatting ---
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.12}
+
+% --- Hyperlinks Configuration ---
+\usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
     linkcolor=blue!70!black,
@@ -20,36 +31,62 @@
     urlcolor=blue!70!black
 }
 
-\title{\textbf{Knowing When to Ask, Search, Answer, or Abstain: \\ Decoupling Prompt Ambiguity from Evidence Uncertainty in General-Purpose RAG}}
-\author{
-    \textbf{Undergraduate Honours Thesis} \\
-    College of Computing and Data Science (CCDS) \\
-    Nanyang Technological University (NTU), Singapore
-}
-\date{\today}
-
 \begin{document}
 
-\maketitle
+% =========================================================================
+% COVER PAGE
+% =========================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{1.0cm}
+    
+    {\Large \textbf{SC4001: Neural Networks and Deep Learning}}\\[0.3cm]
+    {\large \textbf{Academic Year 2026/2027, Semester 1}}\\[0.2cm]
+    {\large College of Computing and Data Science}\\[0.2cm]
+    {\large Nanyang Technological University, Singapore}\\[2.0cm]
+    
+    \rule{\linewidth}{1.2pt}\\[0.5cm]
+    {\LARGE \textbf{Knowing When to Ask, Search, Answer, or Abstain:\\
+    Decoupling Prompt Ambiguity from Evidence Uncertainty in RAG}}\\[0.3cm]
+    \rule{\linewidth}{1.2pt}\\[1.0cm]
+    
+    \begin{minipage}{0.85\textwidth}
+        \centering
+        \textbf{\large Project Report}\\[0.8cm]
+        \begin{tabular}{lll}
+            \textbf{Group Number:} & \multicolumn{2}{l}{Group 101} \\[0.25cm]
+            \textbf{Team Members:} & Nalin Mathur & (U2440219E) \\[0.15cm]
+                                   & Balasubramanian Gurucharan & (U2423294B) \\[0.8cm]
+        \end{tabular}
+    \end{minipage}
+    
+    \vfill
+    \vspace*{0.8cm}
+\end{titlepage}
 
-\begin{abstract}
-Conversational Retrieval-Augmented Generation (RAG) systems operate under two distinct sources of epistemic friction: \emph{prompt ambiguity} (where the user's information need admits multiple valid intents) and \emph{evidence insufficiency} (where the corpus lacks sufficient, uncontradicted evidence to support a factual answer). Prevailing approaches conflate these dimensions into a single scalar confidence score, causing models to either ask redundant questions when database passages are simply missing, or hallucinate unsupported answers when queries are under-specified. 
-In this work, we propose a principled \textbf{$2 \times 2$ Epistemic Uncertainty Framework} that orthogonally decouples user prompt ambiguity from database evidence gaps. We formulate multi-action decision-making via a \textbf{Counterfactual Value of Information (VOI)} objective, learning to select among four macro actions: \texttt{ANSWER}, \texttt{ASK} (targeted clarification), \texttt{SEARCH} (corpus query reformulation), and \texttt{ABSTAIN}. 
-To evaluate this formulation at scale, we construct a $595,000$-state benchmark derived from four public QA corpora (AmbigQA, HotpotQA, MS MARCO, and SciFact). Across in-distribution, domain-shift, and adversarial retrieval splits, our dual-uncertainty Set Transformer architecture reduces decision regret by \textbf{$57.3\%$} over standard prompted LLMs, eliminates unsupported hallucinated answers ($0.0\%$ vs $18.4\%$--$20.9\%$), and achieves a \textbf{$97.3\%$} top-1 clarification question accuracy on ambiguous turns while maintaining near-zero calibration error ($\text{ECE} < 0.0001$).
-\end{abstract}
-
-\newpage
+% =========================================================================
+% CONTENTS PAGE (Excluded from 10-Page Count per Guidelines)
+% =========================================================================
+\pagenumbering{roman}
 \tableofcontents
 \newpage
 
-\input{sections/01_introduction}
-\input{sections/02_related_work}
-\input{sections/03_methodology}
-\input{sections/04_experimental_setup}
-\input{sections/05_results}
-\input{sections/06_ablation_study}
-\input{sections/07_conclusion}
+% =========================================================================
+% MAIN BODY (Maximum 10 Pages excluding Front Matter & References)
+% =========================================================================
+\pagenumbering{arabic}
 
+\input{sections/01_introduction}
+\input{sections/02_review_existing_techniques}
+\input{sections/03_methods}
+\input{sections/04_experiments_and_results}
+\input{sections/05_discussion}
+\input{sections/06_ai_use_statement}
+
+% =========================================================================
+% REFERENCES (Excluded from 10-Page Count per Guidelines)
+% =========================================================================
+\newpage
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 

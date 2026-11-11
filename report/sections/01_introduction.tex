@@ -1,16 +1,26 @@
 \section{Introduction}
 \label{sec:introduction}
 
-Retrieval-Augmented Generation (RAG) has emerged as the standard paradigm for grounding Large Language Models (LLMs) in external, verifiable knowledge corpora \cite{lewis2020retrieval}. Despite widespread adoption, contemporary RAG systems suffer from two chronic, interconnected failure modes:
+Retrieval-Augmented Generation (RAG) has become the dominant architecture for grounding Large Language Models (LLMs) in external knowledge bases\cite{lewis2020retrieval}. By coupling an information retriever with an autoregressive generator, RAG systems theoretically mitigate hallucination and incorporate domain-specific knowledge without requiring retraining. However, when deployed in conversational, open-domain, or high-stakes settings, contemporary RAG systems suffer from two interconnected failure modes:
 \begin{enumerate}
-    \item \textbf{Premature Answering and Hallucination:} When retrieved passages fail to answer the query or present conflicting evidence, LLMs tend to generate fluent but factually unsubstantiated answers.
-    \item \textbf{User Annoyance via Misdirected Clarification:} When an answer cannot be generated, existing interactive assistants frequently prompt the user for clarification, even when the user's query is unambiguous and the failure stems entirely from missing corpus documents.
+    \item \textbf{Premature Answering and Hallucination:} When the retrieved context lacks the necessary facts or contains mutually contradictory claims, LLMs exhibit a strong inductive bias toward generating fluent, confident, but factually ungrounded answers.
+    \item \textbf{Misdirected Clarification:} When unable to synthesize a confident answer, interactive agentic RAG systems often default to prompting the user for clarification. In practice, this occurs even when the user's initial query is completely clear and unambiguous, but the retrieval corpus simply lacks the relevant document. Asking the user to rephrase or clarify cannot resolve an unindexed database gap.
 \end{enumerate}
 
-These pathologies arise because standard systems treat epistemic uncertainty as a single scalar confidence score. In reality, conversational information seeking exhibits two orthogonal dimensions of epistemic uncertainty:
+\subsection{The Root Cause: Scalar Uncertainty}
+Existing reliable RAG frameworks, such as Corrective RAG (CRAG)\cite{yan2024corrective} and Self-RAG \cite{asai2024self}, treat systemic uncertainty as a \emph{one-dimensional scalar quantity} (typically a cosine retrieval similarity score, an internal token entropy threshold, or a self-reflective confidence score). This unidimensional framing is fundamentally flawed because conversational information seeking involves two mutually orthogonal sources of uncertainty:
 \begin{itemize}
-    \item \textbf{Prompt Ambiguity ($U_{\text{prompt}}$):} Does the user's initial natural language prompt under-specify their genuine information need?
-    \item \textbf{Evidence Insufficiency ($U_{\text{evid}}$):} Does the underlying retrieval database contain sufficient, uncontradicted evidence to support a factual answer?
+    \item \textbf{Prompt Ambiguity ($P \in \{0, 1\}$):} Does the user's natural language input admit multiple valid interpretations, under-specify necessary constraints, or omit critical disambiguation?
+    \item \textbf{Corpus Insufficiency ($E \in \{0, 1\}$):} Does the internal retrieval corpus contain sufficient, uncontradicted evidence to support a verifiable answer for the intended interpretation of the user's query?
 \end{itemize}
 
-By decoupling these two uncertainty axes into a $2 \times 2$ Epistemic Matrix, we establish a principled mapping to optimal macro actions: \texttt{ANSWER}, \texttt{ASK}, \texttt{SEARCH}, and \texttt{ABSTAIN}.
+Conflating these two dimensions forces the system into sub-optimal actions. If an agent is uncertain, does that uncertainty stem from the user's prompt (which warrants an active clarification question) or from the database (which warrants a reformed search query, or, in poor cases,an abstention)?
+
+\subsection{Proposed Solution: A 2$\times$2 Epistemic Framework \& Value of Information}
+To resolve this dilemma, we propose:
+\begin{enumerate}
+    \item \textbf{Orthogonal $2 \times 2$ Epistemic Quadrants:} We formally decouple query ambiguity from evidence sufficiency, establishing a one-to-one mapping to four macro actions: $\texttt{ANSWER}$ ($P=1, E=1$), $\texttt{ASK}$ ($P=0, E=1$), $\texttt{SEARCH}$ ($P=1, E=0$), and $\texttt{ABSTAIN}$ ($P=0, E=0$).
+    \item \textbf{Counterfactual Value of Information (VOI) Objective:} We formulate the selection of candidate clarification questions $q \in \mathcal{Q}$ and search query rewrites $s \in \mathcal{S}$ within a decision-theoretic framework. The model evaluates candidate actions by balancing expected downstream task regret reduction against user cognitive interaction cost ($\lambda$) and search retrieval latency ($\gamma$).
+    \item \textbf{Cross-Passage Set Transformer Architecture:} Rather than relying on simple mean-pooled embeddings or prompt heuristics, we deploy a permutation-invariant Set Transformer \cite{lee2019set} with Bayesian intent modeling and selective readiness calibration.
+    \item \textbf{Large-Scale Benchmark:} We construct and evaluate an extensive benchmark spanning four corpora (AmbigQA, HotpotQA, MS MARCO, and SciFact), comparing six model paradigms and six ablation variants.
+\end{enumerate}

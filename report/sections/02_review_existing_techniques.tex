@@ -1,0 +1,26 @@
+\section{Review of Existing Techniques}
+\label{sec:review_existing_techniques}
+
+\subsection{Evolution of Retrieval-Augmented Generation (RAG)}
+Standard RAG frameworks\cite{lewis2020retrieval} employ dense bi-encoders (e.g., DPR, Contriever) to retrieve the top-$K$ passages from an indexed corpus and prepend them directly into the context window of an autoregressive LLM. While effective for simple single-hop factoid queries, standard RAG lacks mechanisms to verify whether the retrieved context genuinely supports the target claim.
+
+To address this, recent architectures introduce active and reflective routing. Corrective RAG (CRAG) \cite{yan2024corrective} incorporates a lightweight retrieval evaluator that classifies retrieval quality into three discrete confidence bands (\emph{Correct}, \emph{Incorrect}, \emph{Ambiguous}) based on maximum vector similarity scores. If similarity is low, CRAG triggers web search; if high, it refines internal knowledge. Similarly, Self-RAG\cite{asai2024self} trains an LLM to generate special reflection tokens (\texttt{[Retrieve]}, \texttt{[IsRel]}, \texttt{[IsSup]}, \texttt{[IsUse]}) to critique retrieved evidence dynamically. 
+
+However, both CRAG and Self-RAG suffer from a shared conceptual limitation: they operate on a scalar measure of uncertainty. They evaluate whether passages are relevant to the query, but cannot decouple whether low confidence is caused by user prompt underspecification (e.g., missing temporal constraints) or corpus retrieval failures (e.g., contradictory web sources).
+
+\subsection{Ambiguity in Conversational Information Seeking}
+In real-world dialogue, queries are frequently underspecified. The AmbigQA benchmark\cite{min2020ambigqa} demonstrated that over half of open-domain search queries admit multiple plausible answers depending on latent temporal, geographic, or contextual constraints. Existing conversational search systems attempt to address this by generating clarification questions. However, prior conversational clarification models generally assume that the underlying retrieval engine has access to an omniscient, clean web corpus. In practical enterprise settings, database gaps are pervasive. If an enterprise knowledge base contains no documents about a proprietary internal tool, asking the user \textit{"Did you mean version A or version B?"} is an ungrounded hallucination that wastes user interaction budget.
+
+\subsection{NLI Cross-Encoders as Proxies for LLM Factual Groundedness}
+\label{sec:review_nli_proxies}
+In large-scale evaluation benchmarks spanning hundreds of thousands of RAG interactions, executing continuous LLM inference is computationally intractable and introduces non-deterministic drift. 
+
+To overcome this, a prominent and well-respected body of literature establishes \textit{Natural Language Inference} (NLI) cross-encoder signals (predicting entailment, contradiction, and neutral probabilities between query, retrieved evidence, and claims) as an automated proxy for LLM factual groundedness and uncertainty:
+\begin{enumerate}
+    \item \textbf{Semantic Uncertainty Estimation:} Kuhn et al.\cite{kuhn2023semantic} (ICLR 2023) demonstrated that raw LLM token probabilities fail to measure true semantic certainty due to linguistic paraphrasing. They proved that using an NLI cross-encoder (e.g., DeBERTa-v3-large-MNLI) to evaluate semantic equivalence across candidate generations provides a mathematically sound measure of true epistemic uncertainty.
+    \item \textbf{Black-Box Hallucination Detection:} Manakul et al. \cite{manakul2023selfcheckgpt} (EMNLP 2023) introduced \emph{SelfCheckGPT}, demonstrating that passage-level NLI entailment and contradiction scores serve as the most effective black-box proxy for LLM factual hallucination, substantially outperforming token likelihoods and surface lexical overlap without requiring human annotation.
+    \item \textbf{Automated Factual Consistency Standardization:} The comprehensive TRUE meta-benchmark by Google Research \cite{honovich2022true} (ACL 2022) systematically evaluated factual verification across 11 datasets. Their findings established that NLI cross-encoders achieve state-of-the-art correlation with human judgments of LLM factual groundedness, confirming that cross-encoder entailment/contradiction margins reliably determine whether an answer is genuinely supported by retrieved evidence.
+    \item \textbf{Verbalized LLM Overconfidence:} Furthermore, Xiong et al. \cite{xiong2024can} (ICLR 2024) empirically investigated confidence elicitation in instruction-tuned LLMs, proving that prompted models exhibit severe verbalized overconfidence, consistently outputting confidence scores between $70\%$ and $95\%$ even when their generations are ungrounded ($\text{ECE} > 0.40$).
+\end{enumerate}
+
+These findings motivate our state representation and baseline formulations: by conditioning on cross-encoder NLI entailment and contradiction features, we construct a decision space that faithfully captures the empirical properties of conversational RAG interactions at scale.

@@ -1,0 +1,85 @@
+\section{Methods}
+\label{sec:methods}
+
+\subsection{The $2 \times 2$ Epistemic Uncertainty Formulation}
+We formalize conversational RAG interaction as a sequential decision process over a state $s = (\mathbf{x}, \mathcal{D}, \mathcal{Q}, \mathcal{S})$, where $\mathbf{x} \in \mathbb{R}^{d_q}$ represents the user's initial query, $\mathcal{D} = \{\bm{d}_1, \dots, \bm{d}_K\}$ is an unordered multiset of $K$ retrieved passages, $\mathcal{Q} = \{\bm{q}_1, \dots, \bm{q}_Q\}$ is a pool of candidate clarification questions, and $\mathcal{S} = \{\bm{s}_1, \dots, \bm{s}_L\}$ is a pool of candidate search query rewrites.
+
+We define two binary variables that govern the state:
+\begin{align*}
+    P &\in \{0, 1\} \quad \text{(Prompt Certainty: } 1 = \text{unambiguous}, 0 = \text{ambiguous)} \\
+    E &\in \{0, 1\} \quad \text{(Evidence Sufficiency: } 1 = \text{verified/sufficient}, 0 = \text{missing/contradictory)}
+\end{align*}
+The Cartesian product $P \times E$ forms four quadrants, each mapped directly to an optimal macro action $a^* \in \mathcal{A} = \{\texttt{ANSWER}, \texttt{ASK}, \texttt{SEARCH}, \texttt{ABSTAIN}\}$:
+\begin{itemize}
+    \item \textbf{Quadrant 0 ($P=1, E=1 \to \texttt{ANSWER}$):} The user query is specific, and retrieved passages contain consistent, factual proof. The system generates a direct response immediately.
+    \item \textbf{Quadrant 1 ($P=0, E=1 \to \texttt{ASK}$):} The query admits multiple valid interpretations, and 5retrieved passages cover them all. The optimal action is to ask a clarification question $q^* \in \mathcal{Q}$ that discriminates between competing interpretations.
+    \item \textbf{Quadrant 2 ($P=1, E=0 \to \texttt{SEARCH}$):} The query is clear, but retrieved passages are contradictory or missing bridge hops. Clarifying with the user is futile; the system must reformulate search query $s^* \in \mathcal{S}$ to retrieve missing evidence.
+    \item \textbf{Quadrant 3 ($P=0, E=0 \to \texttt{ABSTAIN}$):} The query is underspecified, and the underlying corpus contains unresolvable gaps. The system abstains to avoid a failure on both fronts.
+\end{itemize}
+
+\subsection{Counterfactual Value of Information (VOI) Framework}
+Let $R(s) \in [0, 1]$ represent the immediate decision regret (the expected error penalty) if the system attempts to answer in state $s$. If the system executes action $a$, the expected post-action regret is $\mathbb{E}[R(s \mid a)]$. The expected regret reduction is defined as $\Delta R(a) = \max(0, R(s) - \mathbb{E}[R(s \mid a)])$.
+
+In decision theory \cite{howard1966information}, actions incur operational costs. We model two distinct penalties:
+\begin{itemize}
+    \item \textbf{User Inconvenience Cost ($\lambda = 0.040$):} Asking the user a clarification question incurs cognitive overhead and conversational friction.
+    \item \textbf{Computational Retrieval Cost ($\gamma = 0.020$):} Executing a secondary search query incurs compute latency and index retrieval cost.
+\end{itemize}
+The net Value of Information for candidate clarification question $q \in \mathcal{Q}$ and search rewrite $s \in \mathcal{S}$ is:
+\begin{align*}
+    \operatorname{VOI}(q) &= \Delta R(q) - \lambda \cdot \operatorname{Cost}(q) \\
+    \operatorname{VOI}(s) &= \Delta R(s) - \gamma \cdot \operatorname{Cost}(s)
+\end{align*}
+In Quadrant 1, genuine semantic clarification questions yield $\Delta R(q) \approx 0.25 - 0.35$, yielding a positive net $\operatorname{VOI}(q) > 0$. In contrast, surface distractor questions (e.g., broad formatting questions) have zero regret reduction ($\Delta R = 0$), resulting in strictly negative net $\operatorname{VOI}(q) = -\lambda \cdot \operatorname{Cost}(q) < 0$. In non-ASK states (Quadrants 0, 2, 3), $\Delta R(q) = 0$ for all questions, ensuring that clarification questions are never selected over answering or searching.
+
+\subsection{Neural Policy Architectures}
+We evaluate six comparative paradigms:
+
+\subsubsection{Model A: Retrieval-Confidence Heuristic Baseline}
+Mimicking standard industrial RAG gates (e.g., CRAG \cite{yan2024corrective}), Model A uses linear thresholds on top retrieval similarity and query length:
+\begin{equation}
+    \text{Score}_{\texttt{ANSWER}} = (\max_k \operatorname{sim}(\bm{x}, \bm{d}_k) - 0.65) \times 0.5, \quad \text{Score}_{\texttt{ASK}} = (0.50 - \operatorname{len}(\bm{x})) \times 0.4
+\end{equation}
+It lacks cross-passage interaction and cannot detect NLI contradictions.
+
+\subsubsection{Model B: Zero-Shot Prompted LLM Judge Surrogate}
+Following established literature \cite{kuhn2023semantic, manakul2023selfcheckgpt, honovich2022true, xiong2024can} (Section~\ref{sec:review_nli_proxies}), Model B operates on deep semantic features: query entity grounding, multi-intent likelihood, mean passage entailment, and maximal pairwise contradiction:
+\begin{equation}
+    P_{\text{cert}} = \operatorname{clip}(0.65 \cdot \text{EntitySpec} + 0.35(1 - \text{MultiIntent}), 0.05, 0.95), \quad E_{\text{cert}} = \operatorname{clip}(\text{Entail} - 0.35 \cdot \text{Contra}, 0.05, 0.95)
+\end{equation}
+Crucially, it incorporates verbalized overconfidence calibration \cite{xiong2024can} ($\text{Conf} \in [0.55, 0.98]$) and surface distractor question bias.
+
+\subsubsection{Model C: Pooled MLP Baseline (Ablation 1)}
+A standard multi-layer feed-forward network. Passage features are mean-pooled across the $K=6$ retrieved passages without cross-passage attention, feeding a 4-layer MLP with hidden dimension 128.
+
+\subsubsection{Model D: Permutation-Invariant Set Transformer}
+Because retrieved passages form an unordered set $\mathcal{D}$, we deploy a Set Transformer \cite{lee2019set}. Each passage $\bm{d}_k \in \mathbb{R}^{d_p}$ is processed via a Multi-Head Attention Block (MAB) with query vector $\bm{x}$:
+\begin{equation}
+    \bm{H} = \operatorname{MAB}(\bm{X}, \bm{D}) = \operatorname{LayerNorm}(\bm{X} + \operatorname{MultiHead}(\bm{X}, \bm{D}, \bm{D}))
+\end{equation}
+Followed by a Pooling by Multihead Attention (PMA) block with $k=4$ learnable seed vectors, producing a permutation-invariant context representation that captures pairwise passage contradictions.
+
+\subsubsection{Model E: Bayesian Latent Intent Set Transformer}
+Extending Model D, Model E introduces a variational Gaussian posterior over the user's true latent information facet $\bm{\theta} \in \mathbb{R}^8$:
+\begin{equation}
+    q(\bm{\theta} \mid s) = \mathcal{N}(\bm{\mu}(s), \operatorname{diag}(\bm{\sigma}^2(s)))
+\end{equation}
+Supervised via Gaussian Negative Log-Likelihood (NLL). When prompt ambiguity is high, the posterior dispersion $\operatorname{tr}(\bm{\Sigma})$ expands, guiding the VOI head to prioritize questions that collapse posterior variance.
+
+\subsubsection{Model F: Full Proposed Dual-Uncertainty Architecture}
+Model F integrates the Set Transformer, the Bayesian intent posterior, Deep Ensembling ($K_{\text{ens}}=3$ distinct classification heads) \cite{lakshminarayanan2017simple}, and post-hoc Temperature Scaling \cite{guo2017calibration} on the validation set for calibrated selective prediction readiness.
+
+\subsection{Multi-Task Loss Objective and Distractor Margin Ranking}
+The neural policies are trained end-to-end under a unified multi-task objective:
+\begin{equation}
+    \mathcal{L}_{\text{total}} = 2.5 \mathcal{L}_{\text{macro\_reg}} + 0.5 \mathcal{L}_{\text{macro\_ce}} + 2.5 \mathcal{L}_{\text{q\_reg}} + 2.0 \mathcal{L}_{\text{q\_ce}} + 2.0 \mathcal{L}_{\text{q\_dist}} + 2.0 \mathcal{L}_{\text{q\_margin}} + 1.5 \mathcal{L}_{\text{s\_reg}} + 0.5 \mathcal{L}_{\text{quad}} + 1.0 \mathcal{L}_{\text{regret}}
+\end{equation}
+Two critical loss constraints govern clarification question selection:
+\begin{enumerate}
+    \item \textbf{Targeted Question Cross-Entropy:} $\mathcal{L}_{\text{q\_ce}}$ is evaluated \emph{strictly on genuine ASK states} (Quadrant 1), preventing the model from learning distractor question selection on non-ASK states.
+    \item \textbf{Universal Distractor Margin Ranking:} We enforce a global margin constraint ensuring that valid semantic candidates $\bm{q}_{0..5}$ strictly outrank surface distractor questions $\bm{q}_{6..7}$ across all states:
+    \begin{equation}
+        \mathcal{L}_{\text{q\_margin}} = \frac{1}{B} \sum_{i=1}^B \sum_{j \in \{6, 7\}} \max\left(0, s(q_{i, j}) + 0.20 - \max_{m \in \{0..5\}} s(q_{i, m})\right)
+    \end{equation}
+    Furthermore, target VOIs for distractors are clamped such that $\operatorname{VOI}(q_{\text{distractor}}) \le \min_{m \in \{0..5\}} \operatorname{VOI}(q_m) - 0.05$.
+\end{enumerate}
